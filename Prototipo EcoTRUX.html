@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECOTRUX - Gestión de Residuos en Trujillo</title>
+    <!-- Tailwind CSS para diseño fluido y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar para una estética más pulida */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8b5cf6;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #7c3aed;
+        }
+        /* Animación para el camión en el mapa */
+        @keyframes drive {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(120px, 0px) rotate(0deg); }
+            30% { transform: translate(120px, 0px) rotate(90deg); }
+            50% { transform: translate(120px, 100px) rotate(90deg); }
+            55% { transform: translate(120px, 100px) rotate(180deg); }
+            75% { transform: translate(-50px, 100px) rotate(180deg); }
+            80% { transform: translate(-50px, 100px) rotate(270deg); }
+            95% { transform: translate(-50px, 0px) rotate(270deg); }
+            100% { transform: translate(0, 0) rotate(360deg); }
+        }
+        .animate-truck {
+            animation: drive 20s infinite linear;
+        }
+    </style>
+    <script>
+        // Configuración de Tailwind para adaptar la paleta morada/verde de las imágenes
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            lightPurple: '#a78bfa',
+                            purple: '#7c3aed',
+                            darkPurple: '#4c1d95',
+                            lightGreen: '#34d399',
+                            green: '#10b981',
+                            darkGreen: '#065f46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER & NAVIGATION -->
+    <header class="bg-brand-darkPurple text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Nombre -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('inicio')">
+                    <div class="bg-brand-green p-2 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-truck-fast text-brand-darkPurple text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-extrabold tracking-wider text-brand-lightGreen">ECO<span class="text-white">TRUX</span></span>
+                        <p class="text-xs text-brand-lightPurple font-semibold">Trujillo Sostenible</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links (Desktop) -->
+                <nav class="hidden md:flex space-x-1 lg:space-x-3 text-sm font-medium">
+                    <button onclick="switchTab('inicio')" class="tab-btn px-3 py-2 rounded-md hover:bg-brand-purple transition-all duration-200 active-tab bg-brand-purple" id="btn-inicio">
+                        <i class="fa-solid fa-house mr-1"></i> Inicio
+                    </button>
+                    <button onclick="switchTab('camiones')" class="tab-btn px-3 py-2 rounded-md hover:bg-brand-purple transition-all duration-200" id="btn-camiones">
+                        <i class="fa-solid fa-map-location-dot mr-1"></i> Rutas y Alertas
+                    </button>
+                    <button onclick="switchTab('ayni')" class="tab-btn px-3 py-2 rounded-md hover:bg-brand-purple transition-all duration-200" id="btn-ayni">
+                        <i class="fa-solid fa-handshake mr-1"></i> Conexión Ayni
+                    </button>
+                    <button onclick="switchTab('seguimiento')" class="tab-btn px-3 py-2 rounded-md hover:bg-brand-purple transition-all duration-200" id="btn-seguimiento">
+                        <i class="fa-solid fa-chart-line mr-1"></i> Reciclaje Log
+                    </button>
+                    <button onclick="switchTab('educacion')" class="tab-btn px-3 py-2 rounded-md hover:bg-brand-purple transition-all duration-200" id="btn-educacion">
+                        <i class="fa-solid fa-leaf mr-1"></i> Educación
+                    </button>
+                    <button onclick="switchTab('grupo')" class="tab-btn px-3 py-2 rounded-md hover:bg-brand-purple transition-all duration-200" id="btn-grupo">
+                        <i class="fa-solid fa-users mr-1"></i> Grupo 1
+                    </button>
+                </nav>
+
+                <!-- Botón de pánico/Reporte Rápido -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="openReportModal()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center transition-all transform hover:scale-105">
+                        <span class="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-white opacity-75 mr-2"></span>
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i> Reportar Basura
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ALERTA GLOBAL SIMULADA / NOTIFICADOR TOAST -->
+        <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full"></div>
+
+        <!-- SECCIÓN: INICIO / DASHBOARD -->
+        <section id="tab-inicio" class="tab-content block space-y-6">
+            <!-- Hero banner style de Trujillo -->
+            <div class="relative bg-gradient-to-r from-brand-darkPurple via-brand-purple to-brand-darkGreen rounded-3xl overflow-hidden shadow-xl text-white p-6 md:p-10 flex flex-col md:flex-row items-center justify-between">
+                <div class="space-y-4 max-w-xl z-10">
+                    <div class="inline-flex items-center space-x-2 bg-brand-darkPurple bg-opacity-40 px-3 py-1 rounded-full text-brand-lightGreen text-sm font-semibold border border-brand-purple">
+                        <span>🌟 Solución Innovadora en Trujillo</span>
+                    </div>
+                    <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-none">
+                        Por un Trujillo Limpio y Sostenible
+                    </h1>
+                    <p class="text-slate-200 text-sm md:text-base">
+                        ECOTRUX conecta a los ciudadanos de Trujillo con camiones recolectores municipales en tiempo real y dignifica el trabajo de los recicladores locales mediante el Modelo Ayni.
+                    </p>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="switchTab('camiones')" class="bg-brand-green hover:bg-brand-lightGreen text-brand-darkPurple font-bold px-5 py-2.5 rounded-xl transition duration-300 shadow-md flex items-center gap-2">
+                            <i class="fa-solid fa-location-crosshairs"></i> Rastrear Camión
+                        </button>
+                        <button onclick="switchTab('ayni')" class="bg-white bg-opacity-20 hover:bg-white hover:bg-opacity-30 border border-white text-white font-semibold px-5 py-2.5 rounded-xl transition duration-300 flex items-center gap-2">
+                            <i class="fa-solid fa-recycle"></i> Conectar Reciclador
+                        </button>
+                    </div>
+                </div>
+                <!-- Mini isometric view mock via SVG / CSS -->
+                <div class="hidden lg:block relative w-80 h-64 bg-white bg-opacity-10 rounded-2xl p-4 border border-white border-opacity-10 backdrop-blur-sm shadow-inner">
+                    <div class="absolute inset-0 flex flex-col justify-between p-4">
+                        <div class="flex justify-between items-center text-xs font-semibold text-brand-lightGreen">
+                            <span>GPS Trujillo activo</span>
+                            <span class="flex h-2 w-2 relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="bg-brand-darkPurple bg-opacity-60 p-2.5 rounded-xl text-xs border border-brand-purple flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-truck text-brand-lightGreen"></i>
+                                    <div>
+                                        <p class="font-bold text-white">Camión Zona Norte</p>
+                                        <p class="text-[10px] text-slate-300">En Av. España</p>
+                                    </div>
+                                </div>
+                                <span class="bg-brand-green text-brand-darkPurple text-[10px] px-1.5 py-0.5 rounded font-extrabold">ETA: 4 min</span>
+                            </div>
+                            <div class="bg-brand-darkPurple bg-opacity-60 p-2.5 rounded-xl text-xs border border-brand-purple flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-handshake text-brand-lightPurple"></i>
+                                    <div>
+                                        <p class="font-bold text-white">Reciclador Ayni</p>
+                                        <p class="text-[10px] text-slate-300">Don Carlos (Plásticos)</p>
+                                    </div>
+                                </div>
+                                <span class="bg-brand-lightPurple text-brand-darkPurple text-[10px] px-1.5 py-0.5 rounded font-extrabold">Activo</span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-center text-brand-lightPurple font-semibold">ECOTRUX - Gestión de Residuos Colectivos</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATS / RESUMEN DE IMPACTO -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                    <div class="p-3 bg-violet-100 rounded-xl text-brand-purple">
+                        <i class="fa-solid fa-scale-balanced text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Recolectado</p>
+                        <h3 class="text-2xl font-bold text-slate-800" id="stat-total-weight">350.4 kg</h3>
+                        <p class="text-xs text-brand-green font-medium"><i class="fa-solid fa-arrow-up"></i> Fase Inicial Alcanzada</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                    <div class="p-3 bg-emerald-100 rounded-xl text-brand-green">
+                        <i class="fa-solid fa-recycle text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ecopuntos Ganados</p>
+                        <h3 class="text-2xl font-bold text-slate-800" id="stat-ecopoints">1,250 PTS</h3>
+                        <p class="text-xs text-slate-500 font-medium">Canjeables por beneficios</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                    <div class="p-3 bg-amber-100 rounded-xl text-amber-500">
+                        <i class="fa-solid fa-handshake-angle text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recicladores Unidos</p>
+                        <h3 class="text-2xl font-bold text-slate-800">18 Socios</h3>
+                        <p class="text-xs text-brand-purple font-medium">Modelo Ayni Trujillo</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                    <div class="p-3 bg-red-100 rounded-xl text-red-500">
+                        <i class="fa-solid fa-circle-exclamation text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Reportes Ciudadanos</p>
+                        <h3 class="text-2xl font-bold text-slate-800" id="stat-reports">12 Activos</h3>
+                        <p class="text-xs text-red-500 font-medium">Zonas desatendidas</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EL PROBLEMA VS LA SOLUCIÓN -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Problema -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <span class="text-red-500"><i class="fa-solid fa-circle-xmark"></i></span> El Problema en Trujillo
+                    </h2>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Las calles de Trujillo sufren de acumulación constante de basura debido a la recolección ineficiente e irregular. Muchas zonas quedan completamente desatendidas, lo que genera focos de infección y proliferación de enfermedades. La falta de un sistema efectivo provoca acumulación indefinida, afectando a más de un millón de habitantes.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-center">
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <span class="text-red-600 font-extrabold text-lg block">Infecciones</span>
+                            <span class="text-[11px] text-slate-500">Focos de contagio vecinal</span>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <span class="text-red-600 font-extrabold text-lg block">Irregularidad</span>
+                            <span class="text-[11px] text-slate-500">Camiones sin horario fijo</span>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <span class="text-red-600 font-extrabold text-lg block">Desatención</span>
+                            <span class="text-[11px] text-slate-500">Zonas periféricas olvidadas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solución -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <span class="text-brand-green"><i class="fa-solid fa-circle-check"></i></span> La Propuesta ECOTRUX
+                    </h2>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Un ecosistema tecnológico integral que fusiona tres pilares: monitoreo satelital en tiempo real de camiones recolectores de basura, un sistema de incentivos para fomentar el reciclaje segregado en las familias y el Modelo Ayni para empoderar a los recicladores de Trujillo.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-center">
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <span class="text-brand-green font-extrabold text-lg block">ODS 12</span>
+                            <span class="text-[11px] text-slate-500">Consumo responsable</span>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <span class="text-brand-green font-extrabold text-lg block">Ayni</span>
+                            <span class="text-[11px] text-slate-500">Inclusión de recicladores</span>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <span class="text-brand-green font-extrabold text-lg block">GPS Real-time</span>
+                            <span class="text-[11px] text-slate-500">Evita esperas inútiles</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENLACES DE ACCESO RÁPIDO A LAS SECCIONES -->
+            <div class="bg-brand-darkPurple text-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-brand-lightGreen"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Funcionalidades Clave de la App</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div onclick="switchTab('camiones')" class="bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 p-4 rounded-xl cursor-pointer transition-all duration-200">
+                        <i class="fa-solid fa-bell text-2xl text-brand-lightGreen mb-2"></i>
+                        <h4 class="font-bold text-sm">Notificaciones en tiempo real</h4>
+                        <p class="text-xs text-slate-300 mt-1">Aviso sobre la ruta y hora de llegada del camión recolector municipal directamente a tu móvil.</p>
+                    </div>
+                    <div onclick="switchTab('ayni')" class="bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 p-4 rounded-xl cursor-pointer transition-all duration-200">
+                        <i class="fa-solid fa-people-carry-box text-2xl text-brand-lightPurple mb-2"></i>
+                        <h4 class="font-bold text-sm">Conexión con Recicladores</h4>
+                        <p class="text-xs text-slate-300 mt-1">Vincula ciudadanos con recicladores autorizados, aumentando sus ingresos y dignificando su trabajo.</p>
+                    </div>
+                    <div onclick="switchTab('seguimiento')" class="bg-white bg-opacity-5 hover:bg-opacity-10 border border-white border-opacity-10 p-4 rounded-xl cursor-pointer transition-all duration-200">
+                        <i class="fa-solid fa-chart-line text-2xl text-yellow-300 mb-2"></i>
+                        <h4 class="font-bold text-sm">Seguimiento de Reciclaje</h4>
+                        <p class="text-xs text-slate-300 mt-1">Registra de forma interactiva el pesaje de tus residuos reaprovechables y acumula valiosos Ecopuntos.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: CAMIONES Y ALERTAS (RESIDUOS SOSTENIBLES) -->
+        <section id="tab-camiones" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-brand-purple"></i> Monitoreo de Camiones en Tiempo Real
+                        </h2>
+                        <p class="text-xs text-slate-500">Mapeo del servicio municipal de recojo "Residuos Sostenibles" para los distritos de Trujillo.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="map-district-select" onchange="changeMapDistrict()" class="bg-slate-100 text-xs font-semibold px-3 py-2 rounded-lg border-none focus:ring-2 focus:ring-brand-purple">
+                            <option value="trujillo">Trujillo Centro (Av. España)</option>
+                            <option value="larco">Víctor Larco (Urb. California)</option>
+                            <option value="porvenir">El Porvenir</option>
+                        </select>
+                        <button onclick="simulateTruckMove()" class="bg-brand-purple hover:bg-brand-darkPurple text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1 transition">
+                            <i class="fa-solid fa-rotate mr-1"></i> Forzar Señal GPS
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Mapa interactivo simulado -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="relative bg-slate-100 rounded-2xl border border-slate-200 h-[380px] overflow-hidden shadow-inner flex items-center justify-center">
+                            <!-- Canvas/SVG Mapa de Trujillo Simulado -->
+                            <svg class="absolute inset-0 w-full h-full text-slate-300" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(226, 232, 240, 0.8)" stroke-width="1.5" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid)" />
+                                
+                                <!-- Simulación de Calles -->
+                                <path d="M 0 100 Q 200 120 800 100" fill="none" stroke="#cbd5e1" stroke-width="18" stroke-linecap="round" />
+                                <path d="M 150 0 L 150 400" fill="none" stroke="#cbd5e1" stroke-width="18" stroke-linecap="round" />
+                                <path d="M 500 0 L 500 400" fill="none" stroke="#cbd5e1" stroke-width="18" stroke-linecap="round" />
+                                <path d="M 0 300 L 800 300" fill="none" stroke="#cbd5e1" stroke-width="18" stroke-linecap="round" />
+                                
+                                <!-- Nombres de calles que cambian dinámicamente -->
+                                <text x="170" y="40" fill="#94a3b8" font-size="10" font-weight="bold" id="map-street-vertical-1">Av. Larco</text>
+                                <text x="520" y="40" fill="#94a3b8" font-size="10" font-weight="bold" id="map-street-vertical-2">Av. Mansiche</text>
+                                <text x="20" y="130" fill="#94a3b8" font-size="10" font-weight="bold" id="map-street-horizontal">Av. España</text>
+                            </svg>
+
+                            <!-- Puntos de Interés / Paradas -->
+                            <div class="absolute top-[80px] left-[130px] flex flex-col items-center group">
+                                <div class="bg-red-500 text-white p-1 rounded-full text-xs shadow-lg animate-bounce">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                </div>
+                                <span class="bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded shadow mt-1 opacity-90">Basura Acumulada</span>
+                            </div>
+
+                            <div class="absolute top-[280px] left-[480px] flex flex-col items-center">
+                                <div class="bg-brand-green text-white p-1.5 rounded-full text-xs shadow-lg">
+                                    <i class="fa-solid fa-dumpster"></i>
+                                </div>
+                                <span class="bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded shadow mt-1 opacity-90">Punto Limpio</span>
+                            </div>
+
+                            <!-- Marcador del Camión Animado -->
+                            <div id="simulated-truck" class="absolute top-[85px] left-[135px] flex flex-col items-center animate-truck z-20">
+                                <div class="bg-brand-purple text-white p-2.5 rounded-full shadow-xl border-2 border-white flex items-center justify-center transform scale-110">
+                                    <i class="fa-solid fa-truck text-sm text-brand-lightGreen"></i>
+                                </div>
+                                <span class="bg-brand-darkPurple text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow mt-1.5 border border-brand-purple flex items-center gap-1">
+                                    Camión #ECO-10
+                                    <span class="h-1.5 w-1.5 bg-brand-lightGreen rounded-full inline-block animate-ping"></span>
+                                </span>
+                            </div>
+
+                            <!-- Info Overlay del Estado -->
+                            <div class="absolute bottom-4 left-4 right-4 bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <div>
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Ruta de Hoy</h4>
+                                    <p class="text-sm font-extrabold text-slate-800" id="current-route-name">Urb. Centro - Sector San Andrés</p>
+                                    <p class="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-circle-play text-brand-green"></i> 
+                                        Velocidad: 18 km/h • Paradas pendientes: 4
+                                    </p>
+                                </div>
+                                <div class="bg-brand-purple bg-opacity-10 border border-brand-purple text-brand-darkPurple p-2.5 rounded-xl text-center self-stretch sm:self-auto flex flex-row sm:flex-col justify-between items-center">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider">Tiempo Estimado</span>
+                                    <span class="text-xl font-black text-brand-purple" id="estimated-eta">7 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Alertas y Notificaciones -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col justify-between h-[380px]">
+                        <div class="space-y-4 overflow-y-auto pr-1">
+                            <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2 border-b pb-2">
+                                <i class="fa-solid fa-bell text-brand-purple"></i> Configuración de Alertas
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                <div class="p-3 bg-white rounded-xl border border-slate-100 flex items-center justify-between shadow-sm">
+                                    <div>
+                                        <h4 class="text-xs font-extrabold text-slate-800">Alarma de Proximidad</h4>
+                                        <p class="text-[10px] text-slate-500">Notificar cuando el camión esté a menos de 500 metros.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked onchange="toggleNotification('proximidad')" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple"></div>
+                                    </label>
+                                </div>
+
+                                <div class="p-3 bg-white rounded-xl border border-slate-100 flex items-center justify-between shadow-sm">
+                                    <div>
+                                        <h4 class="text-xs font-extrabold text-slate-800">Alertas de Retraso</h4>
+                                        <p class="text-[10px] text-slate-500">Avisar si hay tráfico o inconvenientes en la ruta.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" onchange="toggleNotification('retraso')" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple"></div>
+                                    </label>
+                                </div>
+
+                                <div class="p-3 bg-white rounded-xl border border-slate-100 flex items-center justify-between shadow-sm">
+                                    <div>
+                                        <h4 class="text-xs font-extrabold text-slate-800">Educación Semanal</h4>
+                                        <p class="text-[10px] text-slate-500">Recibir tips ecológicos de Trujillo.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked onchange="toggleNotification('educacion')" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-purple"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prueba de Notificación Manual -->
+                        <div class="pt-4 border-t border-slate-200 space-y-2">
+                            <p class="text-[10px] text-slate-500 text-center">Prueba el sistema de sonido y alertas nativas de ECOTRUX</p>
+                            <button onclick="simulateInboundTruckNotification()" class="w-full bg-brand-green hover:bg-brand-lightGreen text-brand-darkPurple font-extrabold text-xs py-2.5 rounded-xl shadow transition duration-300 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-volume-high"></i> Simular Llegada del Camión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: CONEXIÓN AYNI (RECICLADORES) -->
+        <section id="tab-ayni" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-people-carry-box text-brand-purple"></i> Conexión Ayni: Red Solidaria de Reciclaje
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Conectamos de manera justa a las familias de Trujillo con recicladores locales debidamente empadronados. Dignifica su labor e incrementa el porcentaje de residuos aprovechados.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Formulario de Solicitud de Recogida -->
+                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2 border-b pb-2">
+                            <i class="fa-solid fa-hand-holding-hand text-brand-purple"></i> Solicitar Recojo Ayni
+                        </h3>
+
+                        <form id="ayni-request-form" onsubmit="submitAyniRequest(event)" class="space-y-3 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Tipo de Residuos a Entregar</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2 cursor-pointer hover:border-brand-purple transition">
+                                        <input type="checkbox" name="waste-type" value="Plástico" checked class="rounded border-slate-300 text-brand-purple focus:ring-brand-purple">
+                                        <span>Plásticos (PET)</span>
+                                    </label>
+                                    <label class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2 cursor-pointer hover:border-brand-purple transition">
+                                        <input type="checkbox" name="waste-type" value="Papel/Cartón" class="rounded border-slate-300 text-brand-purple focus:ring-brand-purple">
+                                        <span>Cartón/Papel</span>
+                                    </label>
+                                    <label class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2 cursor-pointer hover:border-brand-purple transition">
+                                        <input type="checkbox" name="waste-type" value="Vidrio" class="rounded border-slate-300 text-brand-purple focus:ring-brand-purple">
+                                        <span>Vidrio</span>
+                                    </label>
+                                    <label class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2 cursor-pointer hover:border-brand-purple transition">
+                                        <input type="checkbox" name="waste-type" value="Metales" class="rounded border-slate-300 text-brand-purple focus:ring-brand-purple">
+                                        <span>Metales</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Estimación de Peso (kg)</label>
+                                <input type="number" step="0.1" id="ayni-weight" placeholder="Ej: 5.4" required class="w-full bg-white p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Ubicación / Urbanización</label>
+                                <select id="ayni-urb" class="w-full bg-white p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none">
+                                    <option value="Urb. El Recreo">Urb. El Recreo</option>
+                                    <option value="Urb. California">Urb. California</option>
+                                    <option value="Urb. San Andrés">Urb. San Andrés</option>
+                                    <option value="Trujillo Centro">Trujillo Centro</option>
+                                    <option value="Huanchaco">Huanchaco</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Mensaje o Nota</label>
+                                <textarea id="ayni-notes" rows="2" placeholder="Ej: Dejaré los cartones amarrados afuera..." class="w-full bg-white p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none resize-none"></textarea>
+                            </div>
+
+                            <button type="submit" class="w-full bg-brand-purple hover:bg-brand-darkPurple text-white font-extrabold py-3 rounded-xl shadow transition duration-300 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i> Enviar Solicitud de Enlace
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Recicladores Locales Disponibles -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-users text-brand-green"></i> Recicladores Registrados (Trujillo)
+                            </h3>
+                            <span class="bg-emerald-50 text-brand-green text-[10px] font-extrabold px-2 py-0.5 rounded">Asociados MPT</span>
+                        </div>
+
+                        <!-- Grid de Recicladores -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="recyclers-container">
+                            <!-- Reciclador 1 -->
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-brand-purple transition duration-200">
+                                <div class="flex items-start gap-3">
+                                    <img src="https://placehold.co/80x80/7c3aed/ffffff?text=Carlos" alt="Carlos Ruiz" class="w-12 h-12 rounded-full object-cover shadow border border-slate-200">
+                                    <div class="space-y-1">
+                                        <h4 class="font-bold text-xs text-slate-800">Carlos Ruiz Díaz</h4>
+                                        <p class="text-[10px] text-slate-500"><i class="fa-solid fa-location-dot"></i> Urb. El Recreo, San Andrés</p>
+                                        <div class="flex items-center gap-1 text-[10px] text-amber-500">
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star-half-stroke"></i>
+                                            <span class="text-slate-600 font-semibold">(4.8)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Plásticos</span>
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Cartón</span>
+                                </div>
+                                <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <span class="text-[10px] text-brand-green font-extrabold"><i class="fa-solid fa-truck-pickup"></i> Triciclo Ecológico</span>
+                                    <button onclick="requestDirectConnection('Carlos Ruiz Díaz')" class="bg-brand-purple hover:bg-brand-darkPurple text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">Contactar</button>
+                                </div>
+                            </div>
+
+                            <!-- Reciclador 2 -->
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-brand-purple transition duration-200">
+                                <div class="flex items-start gap-3">
+                                    <img src="https://placehold.co/80x80/10b981/ffffff?text=María" alt="María Fernández" class="w-12 h-12 rounded-full object-cover shadow border border-slate-200">
+                                    <div class="space-y-1">
+                                        <h4 class="font-bold text-xs text-slate-800">María Fernández Solano</h4>
+                                        <p class="text-[10px] text-slate-500"><i class="fa-solid fa-location-dot"></i> Víctor Larco, California</p>
+                                        <div class="flex items-center gap-1 text-[10px] text-amber-500">
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <span class="text-slate-600 font-semibold">(5.0)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Vidrio</span>
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Metales</span>
+                                </div>
+                                <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <span class="text-[10px] text-brand-green font-extrabold"><i class="fa-solid fa-truck-pickup"></i> Motofurgón Eco</span>
+                                    <button onclick="requestDirectConnection('María Fernández Solano')" class="bg-brand-purple hover:bg-brand-darkPurple text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">Contactar</button>
+                                </div>
+                            </div>
+
+                            <!-- Reciclador 3 -->
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-brand-purple transition duration-200">
+                                <div class="flex items-start gap-3">
+                                    <img src="https://placehold.co/80x80/4c1d95/ffffff?text=Alberto" alt="Alberto Quispe" class="w-12 h-12 rounded-full object-cover shadow border border-slate-200">
+                                    <div class="space-y-1">
+                                        <h4 class="font-bold text-xs text-slate-800">Alberto Quispe Rojas</h4>
+                                        <p class="text-[10px] text-slate-500"><i class="fa-solid fa-location-dot"></i> Trujillo Centro</p>
+                                        <div class="flex items-center gap-1 text-[10px] text-amber-500">
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <span class="text-slate-600 font-semibold">(4.2)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Papel/Cartón</span>
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Plásticos</span>
+                                </div>
+                                <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <span class="text-[10px] text-brand-green font-extrabold"><i class="fa-solid fa-truck-pickup"></i> Carrito Manual</span>
+                                    <button onclick="requestDirectConnection('Alberto Quispe Rojas')" class="bg-brand-purple hover:bg-brand-darkPurple text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">Contactar</button>
+                                </div>
+                            </div>
+
+                            <!-- Reciclador 4 -->
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-brand-purple transition duration-200">
+                                <div class="flex items-start gap-3">
+                                    <img src="https://placehold.co/80x80/065f46/ffffff?text=Elena" alt="Elena Torres" class="w-12 h-12 rounded-full object-cover shadow border border-slate-200">
+                                    <div class="space-y-1">
+                                        <h4 class="font-bold text-xs text-slate-800">Elena Torres Ganoza</h4>
+                                        <p class="text-[10px] text-slate-500"><i class="fa-solid fa-location-dot"></i> Huanchaco</p>
+                                        <div class="flex items-center gap-1 text-[10px] text-amber-500">
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star"></i>
+                                            <i class="fa-solid fa-star-half-stroke"></i>
+                                            <span class="text-slate-600 font-semibold">(4.6)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Plásticos</span>
+                                    <span class="bg-purple-100 text-brand-purple text-[9px] px-2 py-0.5 rounded-full font-bold">Vidrio</span>
+                                </div>
+                                <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <span class="text-[10px] text-brand-green font-extrabold"><i class="fa-solid fa-truck-pickup"></i> Triciclo Ecológico</span>
+                                    <button onclick="requestDirectConnection('Elena Torres Ganoza')" class="bg-brand-purple hover:bg-brand-darkPurple text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">Contactar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: SEGUIMIENTO DE RECICLAJE (LOG E HISTORIAL) -->
+        <section id="tab-seguimiento" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-brand-purple"></i> Registro y Seguimiento de Reciclaje
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Lleva un control exacto de tus aportes ecológicos. Tus kg de reciclaje se acumulan para el objetivo de Trujillo y te otorgan valiosos Ecopuntos canjeables.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Calculadora/Registro Express -->
+                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 h-fit">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2 border-b pb-2">
+                            <i class="fa-solid fa-calculator text-brand-purple"></i> Registrar Entrega
+                        </h3>
+
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Categoría</label>
+                                <select id="log-category" class="w-full bg-white p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-purple outline-none">
+                                    <option value="Plásticos (PET)">Plásticos (PET)</option>
+                                    <option value="Papel y Cartón">Papel y Cartón</option>
+                                    <option value="Vidrio Templado">Vidrio</option>
+                                    <option value="Metales / Latas">Metales / Latas</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Peso en Kilogramos (kg)</label>
+                                <input type="number" step="0.01" id="log-weight" placeholder="Ej: 3.50" class="w-full bg-white p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-brand-purple outline-none">
+                            </div>
+
+                            <button onclick="addRecyclingLog()" class="w-full bg-brand-green hover:bg-brand-lightGreen text-brand-darkPurple font-extrabold py-3 rounded-xl shadow transition duration-300 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i> Añadir al Historial
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Historial Registrado -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-brand-purple"></i> Historial Reciente de Entregas
+                            </h3>
+                            <button onclick="clearRecyclingLog()" class="text-xs text-red-500 hover:underline"><i class="fa-solid fa-trash-can mr-1"></i> Borrar Historial</button>
+                        </div>
+
+                        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">Fecha</th>
+                                        <th class="p-3">Categoría</th>
+                                        <th class="p-3">Peso (kg)</th>
+                                        <th class="p-3">Ecopuntos</th>
+                                        <th class="p-3">Reciclador / Destino</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recycling-table-body" class="divide-y divide-slate-100 text-slate-700">
+                                    <!-- Entregas pre-cargadas para visualización del caso inicial (350.4 kg totales iniciales) -->
+                                    <tr>
+                                        <td class="p-3">08/07/2026</td>
+                                        <td class="p-3 font-semibold text-brand-purple">Plásticos (PET)</td>
+                                        <td class="p-3 font-bold">120.50 kg</td>
+                                        <td class="p-3 text-brand-green font-bold">+600 PTS</td>
+                                        <td class="p-3">Carlos Ruiz (Ayni)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3">09/07/2026</td>
+                                        <td class="p-3 font-semibold text-brand-purple">Papel y Cartón</td>
+                                        <td class="p-3 font-bold">180.90 kg</td>
+                                        <td class="p-3 text-brand-green font-bold">+360 PTS</td>
+                                        <td class="p-3">María Fernández (Ayni)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3">10/07/2026</td>
+                                        <td class="p-3 font-semibold text-brand-purple">Vidrio</td>
+                                        <td class="p-3 font-bold">49.00 kg</td>
+                                        <td class="p-3 text-brand-green font-bold">+290 PTS</td>
+                                        <td class="p-3">Punto Limpio MPT</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Indicación del caso de estudio de Trujillo -->
+                        <div class="bg-brand-purple bg-opacity-5 p-4 rounded-xl border border-brand-purple border-opacity-20 text-slate-600 text-xs leading-relaxed space-y-1">
+                            <p class="font-bold text-brand-darkPurple"><i class="fa-solid fa-circle-info mr-1"></i> Información Metodológica ECOTRUX</p>
+                            <p>En el plan piloto inicial del proyecto, **ECOTRUX recolectó exitosamente un total acumulado de 350.4 kg** de residuos sólidos segregados. Este registro simula el escalado vecinal de la data real obtenida por el Grupo 11.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: EDUCACIÓN AMBIENTAL (GUÍAS & MINI JUEGO) -->
+        <section id="tab-educacion" class="tab-content hidden space-y-6">
+            <!-- Bloque de Artículos Educativos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-book-open text-brand-purple"></i> Guía de Clasificación de Residuos
+                    </h2>
+                    <p class="text-xs text-slate-500">Aprende a separar tus desechos correctamente desde casa para potenciar el Modelo Ayni y cuidar Trujillo.</p>
+                    
+                    <div class="space-y-3 text-xs">
+                        <div class="flex items-start gap-3 bg-violet-50 p-3 rounded-xl border border-violet-100">
+                            <span class="bg-brand-purple text-white px-2 py-1 rounded font-bold">Plásticos</span>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Recipientes PET, botellas, tapas limpias</h4>
+                                <p class="text-slate-500 mt-0.5">Enjuágalas y sécalas antes de entregárselas al reciclador para evitar malos olores.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <span class="bg-brand-green text-brand-darkGreen px-2 py-1 rounded font-bold">Orgánico</span>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Cáscaras de frutas, verduras y café</h4>
+                                <p class="text-slate-500 mt-0.5">Úsalos para compostaje doméstico o para abono en jardines trujillanos.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                            <span class="bg-amber-500 text-white px-2 py-1 rounded font-bold">Papel/Cartón</span>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Cajas corrugadas, periódicos, archivadores</h4>
+                                <p class="text-slate-500 mt-0.5">Desármalas para optimizar espacio en el furgón del reciclador.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Minijuego interactivo de ordenamiento -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-gamepad text-brand-green"></i> Ecopuntos Mini-Game
+                        </h2>
+                        <span class="bg-brand-purple text-white text-[10px] font-bold px-2 py-0.5 rounded-full" id="game-score-badge">Puntos: 0</span>
+                    </div>
+                    <p class="text-xs text-slate-500">Ayuda a mantener limpias las calles de Trujillo clasificando el siguiente residuo en su tacho correspondiente.</p>
+
+                    <!-- Tarjeta del residuo actual -->
+                    <div class="bg-slate-100 p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center space-y-3 relative overflow-hidden">
+                        <div id="game-item-icon" class="text-5xl text-brand-purple">
+                            <i class="fa-solid fa-bottle-water"></i>
+                        </div>
+                        <h4 id="game-item-name" class="font-bold text-sm text-slate-800">Botella de Plástico PET</h4>
+                        <p class="text-[10px] text-slate-400">¿A qué contenedor pertenece?</p>
+                    </div>
+
+                    <!-- Botones de contenedores -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="submitGameAnswer('reciclable')" class="bg-brand-purple hover:bg-brand-darkPurple text-white text-xs font-bold py-3 rounded-xl transition flex flex-col items-center justify-center gap-1">
+                            <i class="fa-solid fa-recycle text-lg text-brand-lightGreen"></i> Reciclable
+                        </button>
+                        <button onclick="submitGameAnswer('organico')" class="bg-brand-green hover:bg-brand-darkGreen text-white text-xs font-bold py-3 rounded-xl transition flex flex-col items-center justify-center gap-1">
+                            <i class="fa-solid fa-seedling text-lg"></i> Orgánico
+                        </button>
+                        <button onclick="submitGameAnswer('comun')" class="bg-slate-500 hover:bg-slate-600 text-white text-xs font-bold py-3 rounded-xl transition flex flex-col items-center justify-center gap-1">
+                            <i class="fa-solid fa-trash text-lg text-slate-200"></i> No Reciclable
+                        </button>
+                    </div>
+                    <p id="game-feedback-text" class="text-center text-[11px] font-bold h-4"></p>
+                </div>
+            </div>
+
+            <!-- Quiz sobre Consumo Responsable -->
+            <div class="bg-brand-darkPurple text-white p-6 rounded-2xl shadow-sm space-y-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-lightbulb text-brand-lightGreen text-2xl"></i>
+                    <div>
+                        <h3 class="font-bold text-lg">Trivia ECOTRUX - ODS 12 Trujillo</h3>
+                        <p class="text-xs text-slate-300">Responde la pregunta y demuestra tu compromiso sostenible para ganar 100 Ecopuntos extras.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white bg-opacity-5 border border-white border-opacity-10 p-4 rounded-xl space-y-3" id="trivia-container">
+                    <h4 class="font-semibold text-sm text-brand-lightGreen">Pregunta: ¿Qué define la esencia del "Modelo Ayni" propuesto por el Grupo 1?</h4>
+                    <div class="grid grid-cols-1 gap-2 text-xs">
+                        <button onclick="checkTriviaAnswer(false)" class="trivia-opt w-full text-left bg-white bg-opacity-10 hover:bg-opacity-20 p-3 rounded-lg transition">A) Comprar camiones recolectores adicionales de procedencia extranjera.</button>
+                        <button onclick="checkTriviaAnswer(true)" class="trivia-opt w-full text-left bg-white bg-opacity-10 hover:bg-opacity-20 p-3 rounded-lg transition">B) Vincular a familias con recicladores locales de manera digna y productiva.</button>
+                        <button onclick="checkTriviaAnswer(false)" class="trivia-opt w-full text-left bg-white bg-opacity-10 hover:bg-opacity-20 p-3 rounded-lg transition">C) Multar severamente a quienes dejen basura fuera de horario.</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: METODOLOGÍA -->
+        <section id="tab-grupo" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div class="text-center max-w-2xl mx-auto space-y-2">
+                    <span class="bg-brand-purple bg-opacity-10 text-brand-purple text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Creadores del Proyecto</span>
+                    <h2 class="text-3xl font-black text-slate-800">Integrantes - GRUPO 1</h2>
+                    <p class="text-slate-500 text-sm">Estudiantes comprometidos con la innovación tecnológica para el desarrollo sostenible y la mejora de la habitabilidad urbana en Trujillo.</p>
+                </div>
+
+                <!-- Lista de Integrantes -->
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <!-- Miembro 1 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-3 hover:border-brand-purple transition duration-200 shadow-sm">
+                        <img src="https://placehold.co/100x100/7c3aed/ffffff?text=JS" alt="Jesús" class="w-16 h-16 rounded-full mx-auto object-cover shadow border border-white">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800 leading-tight">Jesús Sebastian Leyva Rodriguez</h4>
+                            <p class="text-[10px] text-brand-purple font-semibold mt-1">Líder de Desarrollo</p>
+                        </div>
+                    </div>
+                    <!-- Miembro 2 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-3 hover:border-brand-purple transition duration-200 shadow-sm">
+                        <img src="https://placehold.co/100x100/10b981/ffffff?text=DC" alt="Dayron" class="w-16 h-16 rounded-full mx-auto object-cover shadow border border-white">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800 leading-tight">Dayron Tomy Castillo Carhuachin</h4>
+                            <p class="text-[10px] text-brand-purple font-semibold mt-1">Análisis de Datos</p>
+                        </div>
+                    </div>
+                    <!-- Miembro 3 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-3 hover:border-brand-purple transition duration-200 shadow-sm">
+                        <img src="https://placehold.co/100x100/4c1d95/ffffff?text=JC" alt="Jorge" class="w-16 h-16 rounded-full mx-auto object-cover shadow border border-white">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800 leading-tight">Jorge Elias Corales Aguilar</h4>
+                            <p class="text-[10px] text-brand-purple font-semibold mt-1">Diseño UX/UI</p>
+                        </div>
+                    </div>
+                    <!-- Miembro 4 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-3 hover:border-brand-purple transition duration-200 shadow-sm">
+                        <img src="https://placehold.co/100x100/065f46/ffffff?text=FC" alt="Fabricio" class="w-16 h-16 rounded-full mx-auto object-cover shadow border border-white">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800 leading-tight">Fabricio Enrique Corcuera Sandoval</h4>
+                            <p class="text-[10px] text-brand-purple font-semibold mt-1">Sostenibilidad ODS</p>
+                        </div>
+                    </div>
+                    <!-- Miembro 5 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-3 hover:border-brand-purple transition duration-200 shadow-sm">
+                        <img src="https://placehold.co/100x100/db2777/ffffff?text=EV" alt="Edy" class="w-16 h-16 rounded-full mx-auto object-cover shadow border border-white">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800 leading-tight">Edy Franco Villalobos Berna</h4>
+                            <p class="text-[10px] text-brand-purple font-semibold mt-1">Monitoreo Urbano</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conclusiones Académicas -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2"><i class="fa-solid fa-graduation-cap text-brand-purple"></i> Conclusiones del Proyecto Sostenible Trujillo</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-2">
+                            <span class="text-brand-purple font-bold block text-sm">01. Tecnología como Catalizador</span>
+                            <p>La tecnología móvil es una herramienta de altísimo impacto para abordar desafíos urbanos complejos como el deficiente servicio de recolección en Trujillo.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-2">
+                            <span class="text-brand-green font-bold block text-sm">02. Viabilidad Comprobada</span>
+                            <p>ECOTRUX, con sus módulos de Residuos Sostenibles y Modelo Ayni, demuestra la viabilidad técnica y el impacto inmediato mediante métricas reales del piloto.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-2">
+                            <span class="text-amber-500 font-bold block text-sm">03. Colaboración Sostenida</span>
+                            <p>La articulación armónica entre familias, recicladores locales y autoridades ediles es indispensable para sentar las bases de una Trujillo más limpia, justa y circular.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-brand-darkPurple text-slate-300 py-6 border-t border-brand-purple border-opacity-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="text-white font-extrabold tracking-wider text-sm"><span class="text-brand-lightGreen">ECO</span>TRUX</span>
+                <span class="text-slate-400">| Proyecto Tecnológico Trujillo Sostenible</span>
+            </div>
+            <div>
+                <p>© 2026 Grupo 1. Desarrollado con ❤️ para Trujillo.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL: REPORTAR BASURA / INCIDENTE -->
+    <div id="report-modal" class="fixed inset-0 bg-slate-900 bg-opacity-60 hidden items-center justify-center p-4 z-50 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <span class="text-red-500"><i class="fa-solid fa-circle-exclamation"></i></span> Reportar Acumulación de Residuos
+                </h3>
+                <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form onsubmit="submitReportForm(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Nombre (Opcional)</label>
+                    <input type="text" id="report-name" placeholder="Ej: Vecino de San Andrés" class="w-full bg-slate-50 p-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-brand-purple">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Dirección / Referencia Exacta de Trujillo</label>
+                    <input type="text" id="report-loc" placeholder="Ej: Esquina de Av. Larco con Francisco Borja" required class="w-full bg-slate-50 p-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-brand-purple">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Gravedad de la Acumulación</label>
+                    <select id="report-severity" class="w-full bg-slate-50 p-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-brand-purple">
+                        <option value="Moderada">Moderada (Pocas bolsas)</option>
+                        <option value="Alta">Alta (Obstruye la vereda)</option>
+                        <option value="Crítica">Crítica (Foco infeccioso / Desborde total)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Evidencia / Foto Simulación</label>
+                    <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-brand-purple transition">
+                        <i class="fa-solid fa-camera text-slate-400 text-xl mb-1"></i>
+                        <p class="text-[10px] text-slate-500">Cargar foto de la vía pública</p>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="button" onclick="closeReportModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-brand-purple hover:bg-brand-darkPurple text-white font-bold py-2.5 rounded-xl transition">Enviar Reporte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT: Lógica de la APP y Estado local -->
+    <script>
+        // Estado Global de la App
+        const state = {
+            totalWeight: 350.4,
+            ecopoints: 1250,
+            reportsCount: 12,
+            activeTab: 'inicio',
+            gameScore: 0,
+            currentGameItem: 0,
+            // Lista de items para el minijuego de reciclaje
+            gameItems: [
+                { name: 'Botella de Plástico PET', icon: 'fa-bottle-water', type: 'reciclable', points: 50 },
+                { name: 'Cáscara de Plátano', icon: 'fa-lemon', type: 'organico', points: 30 },
+                { name: 'Bolsa de Papas Fritas (Aluminio)', icon: 'fa-cookie-bite', type: 'comun', points: 40 },
+                { name: 'Caja de Pizza de Cartón (Sin grasa)', icon: 'fa-box', type: 'reciclable', points: 50 },
+                { name: 'Restos de Manzana', icon: 'fa-apple-whole', type: 'organico', points: 30 },
+                { name: 'Pila de Litio Gastada', icon: 'fa-battery-empty', type: 'comun', points: 60 }
+            ],
+            // Distritos de Trujillo simulados
+            districts: {
+                trujillo: {
+                    routeName: "Urb. Centro - Sector San Andrés",
+                    streetH: "Av. España",
+                    streetV1: "Av. Larco",
+                    streetV2: "Av. Mansiche",
+                    eta: "7 min"
+                },
+                larco: {
+                    routeName: "Urb. California - Sector Víctor Larco",
+                    streetH: "Av. Larco",
+                    streetV1: "Av. Fátima",
+                    streetV2: "Calle Las Flores",
+                    eta: "14 min"
+                },
+                porvenir: {
+                    routeName: "El Porvenir - Sector Central",
+                    streetH: "Av. Sánchez Carrión",
+                    streetV1: "Av. Pumacahua",
+                    streetV2: "Calle Los Ángeles",
+                    eta: "22 min"
+                }
+            }
+        };
+
+        // Función para cambiar de Tabs
+        function switchTab(tabId) {
+            // Esconder todas las pantallas
+            document.querySelectorAll('.tab-content').forEach(element => {
+                element.classList.add('hidden');
+                element.classList.remove('block');
+            });
+
+            // Mostrar la seleccionada
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+                targetTab.classList.add('block');
+                state.activeTab = tabId;
+            }
+
+            // Cambiar estilos de botones de navegación
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-purple');
+            });
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-brand-purple');
+            }
+
+            // Scroll suave hacia arriba
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Sistema elegante de Toasts para feedback sin recurrir a 'alert()'
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Colores por tipo
+            const colorClasses = {
+                success: 'border-brand-green bg-emerald-50 text-slate-800',
+                info: 'border-brand-purple bg-violet-50 text-slate-800',
+                error: 'border-red-500 bg-red-50 text-slate-800'
+            }[type];
+
+            const iconClass = {
+                success: 'fa-circle-check text-brand-green',
+                info: 'fa-circle-info text-brand-purple',
+                error: 'fa-circle-exclamation text-red-500'
+            }[type];
+
+            toast.className = `p-4 rounded-xl border-l-4 shadow-lg flex items-start gap-3 transition-all duration-300 translate-y-5 opacity-0 ${colorClasses}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-lg mt-0.5"></i>
+                <div>
+                    <h4 class="font-extrabold text-xs">${title}</h4>
+                    <p class="text-[10px] text-slate-500 mt-0.5">${message}</p>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Trigger reflow for animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-5', 'opacity-0');
+            }, 10);
+
+            // Eliminar después de 4 segundos
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-5');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Cambiar Distrito en el Mapa interactivo
+        function changeMapDistrict() {
+            const select = document.getElementById('map-district-select');
+            const selectedVal = select.value;
+            const data = state.districts[selectedVal];
+
+            if (data) {
+                // Actualizar Textos
+                document.getElementById('current-route-name').innerText = data.routeName;
+                document.getElementById('estimated-eta').innerText = data.eta;
+                document.getElementById('map-street-horizontal').textContent = data.streetH;
+                document.getElementById('map-street-vertical-1').textContent = data.streetV1;
+                document.getElementById('map-street-vertical-2').textContent = data.streetV2;
+
+                showToast("Mapa de Trujillo", `Cargando cuadrantes para ${select.options[select.selectedIndex].text}`, "info");
+                simulateTruckMove();
+            }
+        }
+
+        // Forzar actualización de coordenadas simulada del camión
+        function simulateTruckMove() {
+            const truck = document.getElementById('simulated-truck');
+            truck.style.animation = 'none';
+            // Reflow
+            void truck.offsetWidth;
+            truck.style.animation = 'drive 20s infinite linear';
+            showToast("Señal Satelital GPS", "Coordenadas actualizadas. Buscando el camión recolector más cercano...", "success");
+        }
+
+        // Simular Notificación de Proximidad
+        function simulateInboundTruckNotification() {
+            showToast("¡Camión Cerca!", "El camión recolector municipal está a 200 metros de tu casa. Saca tu basura debidamente amarrada.", "info");
+            
+            // Simular sonido corto nativo mediante la API de síntesis de voz (sin URLs de audio externas)
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance("Atención, el camión de basura se está aproximando a su hogar. Prepare sus residuos.");
+                utterance.lang = 'es-PE';
+                utterance.rate = 1.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Alternar estados de checkboxes de notificaciones
+        function toggleNotification(type) {
+            const messages = {
+                proximidad: "Alerta de cercanía del camión recolector activada.",
+                retraso: "Te avisaremos si hay demoras en el servicio de Trujillo.",
+                educacion: "Tips ambientales del Grupo 11 configurados."
+            };
+            showToast("Preferencia Guardada", messages[type], "success");
+        }
+
+        // Enviar solicitud de recojo de basura (Ayni)
+        function submitAyniRequest(event) {
+            event.preventDefault();
+            const weight = parseFloat(document.getElementById('ayni-weight').value);
+            const urb = document.getElementById('ayni-urb').value;
+            const notes = document.getElementById('ayni-notes').value;
+            
+            // Obtener tipos seleccionados
+            const checkedBoxes = document.querySelectorAll('input[name="waste-type"]:checked');
+            const wasteTypes = Array.from(checkedBoxes).map(cb => cb.value).join(', ');
+
+            if (checkedBoxes.length === 0) {
+                showToast("Falta Información", "Por favor selecciona al menos un tipo de residuo.", "error");
+                return;
+            }
+
+            // Actualizar datos del estado
+            state.totalWeight += weight;
+            const gainedPoints = Math.round(weight * 100);
+            state.ecopoints += gainedPoints;
+
+            // Actualizar Dashboard visualmente
+            updateDashboardStats();
+
+            // Agregar a la tabla de Historial
+            addTableLogEntry(wasteTypes, weight, gainedPoints, "Reciclador Asignado");
+
+            showToast("¡Solicitud Ayni Registrada!", `Tu recojo de ${weight}kg en ${urb} ha sido publicado. Un reciclador tomará la ruta pronto. ¡Ganaste +${gainedPoints} Ecopuntos!`, "success");
+            
+            // Resetear Formulario
+            document.getElementById('ayni-request-form').reset();
+        }
+
+        // Conectar manualmente con reciclador específico
+        function requestDirectConnection(name) {
+            showToast("Conexión Ayni Establecida", `Enlazando canal telefónico seguro con ${name}. Recibirás un SMS para coordinar la recogida.`, "success");
+        }
+
+        // Agregar entrega directamente en Log
+        function addRecyclingLog() {
+            const category = document.getElementById('log-category').value;
+            const weight = parseFloat(document.getElementById('log-weight').value);
+
+            if (isNaN(weight) || weight <= 0) {
+                showToast("Error de Registro", "Por favor introduce un pesaje válido mayor a cero.", "error");
+                return;
+            }
+
+            state.totalWeight += weight;
+            const gainedPoints = Math.round(weight * 100);
+            state.ecopoints += gainedPoints;
+
+            // Actualizar estadísticas globales
+            updateDashboardStats();
+
+            // Agregar a la tabla
+            addTableLogEntry(category, weight, gainedPoints, "Punto Limpio MPT");
+
+            showToast("Registro Exitoso", `Se han sumado ${weight}kg al total acumulado de Trujillo. +${gainedPoints} Ecopuntos.`, "success");
+            
+            // Resetear input
+            document.getElementById('log-weight').value = '';
+        }
+
+        // Auxiliar para crear fila en la tabla de registros
+        function addTableLogEntry(category, weight, points, destiny) {
+            const tbody = document.getElementById('recycling-table-body');
+            const tr = document.createElement('tr');
+            
+            // Fecha de hoy formateada
+            const dateStr = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            tr.innerHTML = `
+                <td class="p-3">${dateStr}</td>
+                <td class="p-3 font-semibold text-brand-purple">${category}</td>
+                <td class="p-3 font-bold">${weight.toFixed(2)} kg</td>
+                <td class="p-3 text-brand-green font-bold">+${points} PTS</td>
+                <td class="p-3">${destiny}</td>
+            `;
+
+            // Insertar de primero para simular orden cronológico
+            tbody.insertBefore(tr, tbody.firstChild);
+        }
+
+        // Limpiar log de reciclaje
+        function clearRecyclingLog() {
+            document.getElementById('recycling-table-body').innerHTML = `
+                <tr>
+                    <td colspan="5" class="p-6 text-center text-slate-400">No hay registros de reciclaje para mostrar. Realiza una entrega para iniciar.</td>
+                </tr>
+            `;
+            showToast("Historial Limpiado", "El log de reciclaje local ha sido restablecido.", "info");
+        }
+
+        // Actualizar valores numéricos en el Dashboard
+        function updateDashboardStats() {
+            document.getElementById('stat-total-weight').innerText = `${state.totalWeight.toFixed(1)} kg`;
+            document.getElementById('stat-ecopoints').innerText = `${state.ecopoints.toLocaleString()} PTS`;
+            document.getElementById('stat-reports').innerText = `${state.reportsCount} Activos`;
+        }
+
+        // Lógica del minijuego de clasificación de residuos
+        function submitGameAnswer(category) {
+            const currentItem = state.gameItems[state.currentGameItem];
+            const feedback = document.getElementById('game-feedback-text');
+
+            if (category === currentItem.type) {
+                state.gameScore += currentItem.points;
+                state.ecopoints += currentItem.points;
+                feedback.className = "text-center text-[11px] font-bold text-brand-green";
+                feedback.innerText = `¡Correcto! Ganaste +${currentItem.points} Ecopuntos para Trujillo Centro.`;
+                showToast("¡Correcto!", `Has clasificado excelentemente el residuo.`, "success");
+            } else {
+                feedback.className = "text-center text-[11px] font-bold text-red-500";
+                feedback.innerText = `Incorrecto. Este residuo pertenecía a la categoría: ${currentItem.type.toUpperCase()}`;
+                showToast("Error de Clasificación", `La separación no fue correcta. ¡Vuelve a intentarlo!`, "error");
+            }
+
+            // Actualizar marcador
+            document.getElementById('game-score-badge').innerText = `Puntos: ${state.gameScore}`;
+            updateDashboardStats();
+
+            // Pasar al siguiente residuo con delay
+            setTimeout(() => {
+                state.currentGameItem = (state.currentGameItem + 1) % state.gameItems.length;
+                const nextItem = state.gameItems[state.currentGameItem];
+                
+                document.getElementById('game-item-name').innerText = nextItem.name;
+                
+                // Mapeo dinámico de íconos de FontAwesome
+                const iconContainer = document.getElementById('game-item-icon');
+                iconContainer.className = "text-5xl text-brand-purple";
+                iconContainer.innerHTML = `<i class="fa-solid ${nextItem.icon}"></i>`;
+                
+                feedback.innerText = "";
+            }, 2500);
+        }
+
+        // Responder Trivia sobre ODS 12 y el Modelo Ayni
+        function checkTriviaAnswer(isCorrect) {
+            const container = document.getElementById('trivia-container');
+            if (isCorrect) {
+                state.ecopoints += 100;
+                updateDashboardStats();
+                container.innerHTML = `
+                    <div class="p-4 bg-emerald-500 text-white rounded-xl text-center space-y-2">
+                        <h4 class="font-bold text-sm">🎉 ¡Felicidades, respuesta correcta!</h4>
+                        <p class="text-xs text-emerald-100">El Modelo Ayni dignifica el trabajo de los recicladores locales aliándolos directamente con las juntas vecinales de Trujillo. Ganaste +100 Ecopuntos.</p>
+                    </div>
+                `;
+                showToast("Trivia Superada", "Suma de +100 Ecopuntos completada.", "success");
+            } else {
+                showToast("Casi...", "Esa opción no es del todo correcta. Vuelve a intentarlo.", "error");
+            }
+        }
+
+        // Modales de Reportes Ciudadanos
+        function openReportModal() {
+            document.getElementById('report-modal').classList.remove('hidden');
+            document.getElementById('report-modal').classList.add('flex');
+        }
+
+        function closeReportModal() {
+            document.getElementById('report-modal').classList.add('hidden');
+            document.getElementById('report-modal').classList.remove('flex');
+        }
+
+        function submitReportForm(event) {
+            event.preventDefault();
+            const location = document.getElementById('report-loc').value;
+            const severity = document.getElementById('report-severity').value;
+
+            state.reportsCount += 1;
+            updateDashboardStats();
+
+            closeReportModal();
+            showToast("Reporte Enviado", `El reporte en '${location}' fue ingresado con prioridad '${severity}'. El servicio de Trujillo ha sido notificado.`, "success");
+            
+            document.getElementById('report-loc').value = '';
+        }
+    </script>
+</body>
+</html>
